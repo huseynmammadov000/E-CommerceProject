@@ -1,0 +1,32 @@
+﻿using Ecommerce.Shared.Models.Common;
+
+namespace Ecommerce.Startup.Api.Models;
+
+
+public class Startup : BaseEntity
+{
+    public string Name { get; set; }
+
+    public string Description { get; set; }
+
+    public byte[]? Logo { get; set; }
+
+    public Guid UserId { get; set; }
+
+    public Guid? PortfolioId { get; set; }
+
+    public Portfolio Portfolio { get; set; }
+
+    public Guid CategoryId { get; set; }
+
+    public Category Category { get; set; }
+    public string? WebAddress { get; set; }
+
+    public DateTime FoundationYear { get; set; }
+
+    public byte[]? UploadedFile { get; set; }
+
+    public string? UploadedFileName { get; set; }
+
+    public bool IsActive { get; set; }
+}
