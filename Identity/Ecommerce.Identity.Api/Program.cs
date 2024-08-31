@@ -16,6 +16,7 @@ using Ecommerce.Identity.Api.Services.Abstractions;
 using Ecommerce.Identity.Api.Services;
 using RefreshTokenOptions = Ecommerce.Identity.Api.Options.RefreshTokenOptions;
 using SessionOptions = Ecommerce.Identity.Api.Options.SessionOptions;
+using CorrelationId.DependencyInjection;
 
 
 
@@ -24,7 +25,7 @@ var config = builder.Configuration;
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-builder.Services.AddCors(options => options.AddDefaultPolicy(policy => policy.WithOrigins("https://localhost:7280/", "https://localhost:7280/").AllowAnyHeader().AllowAnyMethod().AllowAnyOrigin()));
+builder.Services.AddCors(options => options.AddDefaultPolicy(policy => policy.WithOrigins("https://localhost:8080/", "https://localhost:7195/").AllowAnyHeader().AllowAnyMethod().AllowAnyOrigin()));
 builder.Services.AddControllers();
 
 builder.Services.AddSingleton<IHashHelper, HashHelper>();
@@ -49,9 +50,17 @@ CookieConfig cookieConfig = Guard.Against.Null(config.GetSection(nameof(CookieCo
 builder.Services.AddSingleton(cookieConfig.Adapt<CookieOptions>());
 
 builder.Services.AddHealthChecks();
+builder.Services.AddCorrelationId();
+builder.Services.AddHttpLogging(options =>
+{
+    options.RequestHeaders.Add("x-correlation-id");
+    options.ResponseHeaders.Add("x-correlation-id");
+});
 
 
 var app = builder.Build();
+
+// app.UseCors();
 
 if (app.Environment.IsDevelopment())
 {

@@ -65,7 +65,15 @@ builder.Services.AddSingleton<RabbitMQ.Client.IConnectionFactory>(factory);
 builder.Services.AddScoped<UserCreatedConsumer>();
 
 builder.Services.RegisterHttpClients(config);
-builder.Services.AddDefaultCorrelationId();
+builder.Services.AddHealthChecks();
+builder.Services.AddCorrelationId();
+builder.Services.AddHttpLogging(options =>
+{
+    options.RequestHeaders.Add("x-correlation-id");
+    options.ResponseHeaders.Add("x-correlation-id");
+});
+
+builder.Services.AddHttpContextAccessor();
 
 
 var app = builder.Build();
@@ -117,6 +125,8 @@ using (var scope = app.Services.CreateScope())
 //    Console.WriteLine(" Press [enter] to exit.");
 //    Console.ReadLine();
 //}
+
+app.UseHealthChecks("/healthcheck");
 
 app.MapControllers();
 

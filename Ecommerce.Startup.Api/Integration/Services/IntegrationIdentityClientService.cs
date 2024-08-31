@@ -9,6 +9,7 @@ using Ecommerce.Startup.Api.Integration.Models;
 using Ecommerce.Startup.Api.Integration.Options;
 using Ecommerce.Startup.Api.Integration.Services.Abstractions;
 using Ecommerce.Shared.Models.Responses;
+using Microsoft.Net.Http.Headers;
 
 
 namespace Ecommerce.Startup.Api.Integration.Services;
@@ -18,18 +19,21 @@ public class IntegrationIdentityClientService : IIntegrationIdentityClientServic
     private readonly HttpClient _httpClient;
     private readonly IdentityClientOptions _clientOptions;
     private readonly ILogger<IntegrationIdentityClientService> _logger;
+    private readonly IHttpContextAccessor _httpContextAccessor;
 
 
     public IntegrationIdentityClientService(
         HttpClient httpClient,
         IdentityClientOptions clientOptions,
-        ILogger<IntegrationIdentityClientService> logger
+        ILogger<IntegrationIdentityClientService> logger,
+        IHttpContextAccessor httpContextAccessor
     )
     {
         _httpClient = Guard.Against.Null(httpClient);
         _clientOptions = Guard.Against.Null(clientOptions);
         _logger = Guard.Against.Null(logger);
         _logger.LogInformation("Identity Client Service created.");
+        _httpContextAccessor = Guard.Against.Null(httpContextAccessor);
     }
 
 
@@ -41,7 +45,28 @@ public class IntegrationIdentityClientService : IIntegrationIdentityClientServic
             MediaTypeNames.Application.Json
         );
 
-        using HttpResponseMessage httpResponseMessage = await _httpClient.PostAsync("/api/Auth/get-current-user-id", requestBody);
+        using var requestMessage = new HttpRequestMessage(HttpMethod.Post, "/api/Auth/get-current-user-id");
+
+        if (_httpContextAccessor.HttpContext.Request.Cookies.Count > 0)
+        {
+            var cookieHeader = string.Join("; ", _httpContextAccessor.HttpContext.Request.Cookies.Select(c => $"{c.Key}={c.Value}"));
+            requestMessage.Headers.Add("Cookie", cookieHeader);
+        }
+
+        string? clientRealIp = _httpContextAccessor.HttpContext.Request.Headers.TryGetValue("X-Client-Ip", out var ipAddr)
+            ? ipAddr.ToString()
+            : _httpContextAccessor.HttpContext.Connection.RemoteIpAddress?.ToString();
+
+        string clientUserAgent = _httpContextAccessor.HttpContext.Request.Headers[HeaderNames.UserAgent].ToString();
+
+        Guard.Against.Null(clientRealIp);
+
+        requestMessage.Headers.Add("X-Client-Ip", clientRealIp);
+
+        if (!string.IsNullOrEmpty(clientUserAgent))
+            requestMessage.Headers.Add("User-Agent", clientUserAgent);
+
+        using var httpResponseMessage = await _httpClient.SendAsync(requestMessage);
 
         var responseBody = await httpResponseMessage.Content.ReadAsStringAsync();
 
